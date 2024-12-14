@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordering System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background: #000000;
+            color: #fff;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .menu {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .item {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            width: calc(33.333% - 20px);
+        }
+        .item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #13dba9;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .admin-login {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>THE UNDRAFTED</h1>
+    </header>
+
+    <div class="container" id="ordering-page">
+        <h2>Available Products</h2>
+        <div id="shirts-section" class="menu">
+            <!-- Dynamic Products will be injected here -->
+        </div>
+        <div class="admin-login">
+            <button onclick="showAdminLogin()">Admin Login</button>
+        </div>
+    </div>
+
+    <div class="container" id="admin-login" style="display: none;">
+        <h2>Admin Login</h2>
+        <form onsubmit="loginAdmin(event)">
+            <label for="admin-username">Username:</label>
+            <input type="text" id="admin-username" required><br><br>
+            <label for="admin-password">Password:</label>
+            <input type="password" id="admin-password" required><br><br>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <div class="container" id="add-product-page" style="display: none;">
+        <h2>Add Product</h2>
+        <form id="product-form">
+            <label for="product-id">Product ID (Max 20 Characters)</label>
+            <input type="text" id="product-id" maxlength="20" required><br><br>
+            <label for="product-name">Product Name (Max 20 Characters)</label>
+            <input type="text" id="product-name" maxlength="20" required><br><br>
+            <label for="product-description">Product Description (Max 50 Characters)</label>
+            <textarea id="product-description" maxlength="50" required></textarea><br><br>
+            <label for="product-price">Product Price (₱)</label>
+            <input type="number" id="product-price" required><br><br>
+            <label for="product-image">Upload Product Image</label>
+            <input type="file" id="product-image" accept="image/*" required><br><br>
+            <button type="button" onclick="addProduct()">Add Product</button>
+        </form>
+        <button onclick="goToOrderingPage()">Back to Ordering Page</button>
+    </div>
+
+    <script>
+        // Mock Admin Credentials
+        const ADMIN_CREDENTIALS = { username: "admin", password: "admin123" };
+
+        // Show Admin Login
+        function showAdminLogin() {
+            document.getElementById('ordering-page').style.display = 'none';
+            document.getElementById('admin-login').style.display = 'block';
+        }
+
+        // Admin Login Functionality
+        function loginAdmin(event) {
+            event.preventDefault();
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+
+            if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+                alert('Login successful!');
+                document.getElementById('admin-login').style.display = 'none';
+                document.getElementById('add-product-page').style.display = 'block';
+            } else {
+                alert('Invalid credentials!');
+            }
+        }
+
+        // Add Product Functionality
+        function addProduct() {
+            const id = document.getElementById('product-id').value.trim();
+            const name = document.getElementById('product-name').value.trim();
+            const description = document.getElementById('product-description').value.trim();
+            const price = parseFloat(document.getElementById('product-price').value.trim());
+            const image = document.getElementById('product-image').files[0];
+
+            if (!id || !name || !description || isNaN(price) || !image) {
+                alert('Please fill all fields correctly.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const products = JSON.parse(localStorage.getItem('products')) || [];
+                products.push({ id, name, description, price, image: e.target.result });
+                localStorage.setItem('products', JSON.stringify(products));
+                alert('Product added successfully!');
+                document.getElementById('product-form').reset();
+            };
+            reader.readAsDataURL(image);
+        }
+
+        // Load Products on Ordering Page
+        function loadProducts() {
+            const products = JSON.parse(localStorage.getItem('products')) || [];
+            const shirtsSection = document.getElementById('shirts-section');
+            shirtsSection.innerHTML = '';
+
+            products.forEach((product, index) => {
+                const item = document.createElement('div');
+                item.classList.add('item');
+                item.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}">
+                    <h3>${product.name}</h3>
+                    <p>₱${product.price.toFixed(2)}</p>
+                    <p>${product.description}</p>
+                    <label for="size">Size:</label>
+                    <select name="size">
+                        <option value="Small">Small</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Large">Large</option>
+                    </select><br><br>
+                    <label class="quantity">Quantity:</label>
+                    <input type="number" min="1" value="1"><br><br>
+                    <button onclick="addToCart(this)">Add to Cart</button>
+                    <button onclick="deleteProduct(${index})">Delete</button>
+                `;
+                shirtsSection.appendChild(item);
+            });
+        }
+
+        // Delete Product Functionality
+        function deleteProduct(index) {
+            const products = JSON.parse(localStorage.getItem('products')) || [];
+            products.splice(index, 1);
+            localStorage.setItem('products', JSON.stringify(products));
+            alert('Product deleted successfully!');
+            loadProducts();
+        }
+
+        // Navigate Back to Ordering Page
+        function goToOrderingPage() {
+            document.getElementById('add-product-page').style.display = 'none';
+            document.getElementById('ordering-page').style.display = 'block';
+            loadProducts();
+        }
+
+        // Dummy Add to Cart Functionality
+        function addToCart(button) {
+            alert('Item added to cart!');
+        }
+
+        // Load Products on Page Load
+        window.onload = loadProducts;
+    </script>
+</body>
+</html>
